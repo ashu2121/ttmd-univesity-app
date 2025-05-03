@@ -9,7 +9,7 @@ import os
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # File paths
 csv_file = "Improved_NEET_MDS_Dataset.csv"
-json_file = "university_metadata.json"
+json_file = "university_chunks_openai_rag.json"
 faiss_file = "university_index.faiss"
 
 # Step 1: Read CSV
