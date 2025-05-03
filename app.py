@@ -18,7 +18,7 @@ index = faiss.read_index("university_index.faiss")
 embedding_dim = 1536
 
 # OpenAI client setup
-client = OpenAI(api_key="")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Flask app setup
 app = Flask(__name__)

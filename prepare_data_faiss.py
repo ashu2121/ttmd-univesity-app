@@ -6,7 +6,7 @@ from openai import OpenAI
 import os
 
 # Set OpenAI key from environment
-client = OpenAI(api_key="")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # File paths
 csv_file = "Improved_NEET_MDS_Dataset.csv"
 json_file = "university_metadata.json"
