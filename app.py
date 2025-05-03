@@ -23,6 +23,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Flask app setup
 app = Flask(__name__)
 CORS(app)  # Enable for all origins
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 # Function to get embedding for a query
 def get_embedding(text, model="text-embedding-3-small"):
