@@ -6,8 +6,8 @@ import json
 import os
 from flask_cors import CORS
 
-if not os.path.exists("university_index.faiss"):
-    import prepare_data_faiss  # Will auto-run and generate both files
+#if not os.path.exists("university_index.faiss"):
+#    import prepare_data_faiss  # Will auto-run and generate both files
 
 
 # Load metadata and FAISS index
