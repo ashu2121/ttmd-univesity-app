@@ -23,6 +23,7 @@ index = faiss.read_index(faiss_file1)
 embedding_dim = 1536
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 # OpenAI client setup
 #client = OpenAI(api_key=os.environ.)
 

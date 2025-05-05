@@ -52,7 +52,7 @@ for _, row in df.iterrows():
     chunks.append(chunk)
 
 # Save chunks to JSON
-with open(json_file, "w", encoding="utf-8") as f:
+with open(json_file1, "w", encoding="utf-8") as f:
     json.dump(chunks, f, ensure_ascii=False, indent=2)
 
 # Step 3: Embed chunks and save FAISS index
@@ -64,5 +64,5 @@ for chunk in chunks:
     embedding = response.data[0].embedding
     index.add(np.array([embedding], dtype="float32"))
 
-faiss.write_index(index, faiss_file)
+faiss.write_index(index, faiss_file1)
 print("✅ JSON and FAISS files created.")
