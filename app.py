@@ -22,8 +22,8 @@ with open(json_file1, "r", encoding="utf-8") as f:
 index = faiss.read_index(faiss_file1)
 embedding_dim = 1536
 
-# OpenAI client setup
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# OpenAI client setup
 #client = OpenAI(api_key=os.environ.)
 
 # Flask app setup
