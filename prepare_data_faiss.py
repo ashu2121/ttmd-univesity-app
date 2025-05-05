@@ -7,10 +7,19 @@ import os
 
 # Set OpenAI key from environment
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 # File paths
+import time
+timestamp = time.strftime("%Y%m%d%H%M%S")
+json_file1 = f"university_metadata_{timestamp}.json"
+faiss_file1 = f"university_index_{timestamp}.faiss"
+
+# Save filenames to a config file
+with open("current_files.json", "w") as f:
+    json.dump({"json_file": json_file1, "faiss_file": faiss_file1}, f)
+
 csv_file = "Improved_NEET_MDS_Dataset.csv"
-json_file = "university_chunks_openai_rag.json"
-faiss_file = "university_index.faiss"
+
 
 # Step 1: Read CSV
 df = pd.read_csv(csv_file, delimiter=';')
@@ -29,19 +38,17 @@ for _, row in df.iterrows():
     course = row["course"]
     quota = row["quota"]
     category = row["category"]
-    print("cutoff > ", row['cutoff'])
-    continue
-    cutoff = 100
+    cutoff = row["cutoff"]
     fee = row["fee"]
     round_ = row["round"]
     authority = row["counseling_authority"]
-    utype = row["type"]
-    state = row["satte"]
+    utype = row["college_type"]
+    #state = row["state"]
     minority = row["minority"] if pd.notna(row["minority"]) else "None"
 
     chunk = (
         f"{university} offers {course} under {quota} quota for {category} category in round {round_} "
-        f"with a cutoff rank of {cutoff}. Fee: ₹{fee}. Type: {utype}. Counseling by {authority}. Minority: {minority}. State: {state}."
+        f"with a cutoff rank of {cutoff}. Fee: ₹{fee}. College Type: {utype}. Counseling by {authority}. Minority: {minority}"
     )
     chunks.append(chunk)
 

@@ -1,7 +1,7 @@
-counseling_authority;college_name;state;type;exam;minority;university;quota;course;category;round;cutoff;year;seat;fee
-All India - MCC;Maulana Azad Dental College; Delhi;Private;AIIMS-MDS;None;;Management Quota;MDS - Endodontics;Open;Round 1;2502;2024;200;100000
+counseling_authority;college_name;state;college_type;exam;minority;university;quota;course;category;round;cutoff;year;seat;fee
+All India - MCC;Maulana Azad Dental College; Delhi;Private;AIIMS-MDS;None;;Management Quota;MDS - Endodontics;Open;Round 4;2502;2024;200;100000
 All India - MCC;SRM Dental College; Chennai;Private;NEET-MDS;Christian;;ST Quota;MDS - Endodontics;Open;Round 2;1212;2024;1000;250000
-All India - MCC;Maulana Azad Dental College; Delhi;Private;NEET-MDS;Muslim;;NRI Quota;MDS - Prosthodontics;OBC;Round 1;2370;2024;300;300000
+All India - MCC;Maulana Azad Dental College; Delhi;Private;NEET-MDS;Muslim;;NRI Quota;MDS - Prosthodontics;Open;Round 6;2370;2024;300;300000
 All India - MCC;Maulana Azad Dental College; Delhi;Private;AIIMS-MDS;Christian;;Deemed - Paid Seats (PS);MDS - Orthodontics;ST;Round 1;2962;2024;1500;500000
 All India - MCC;A B Shetty Dental College; Mangalore;Private;NEET-UG;Muslim;;General;MDS - Orthodontics;ST;Round 2;1206;2024;15;123000
 All India - MCC;SRM Dental College; Chennai;Private;NEET-UG;Muslim;;General;MDS - Orthodontics;OBC;Round 1;2962;2024;752;243000
@@ -10,7 +10,7 @@ All India - MCC;SRM Dental College; Chennai;Government;NEET-MDS;None;;SC Quota;M
 All India - MCC;Government Dental College; Mumbai;Private;AIIMS-MDS;Muslim;;ST Quota;MDS - Oral Surgery;OBC;Round 2;2231;2024;564;100000
 All India - MCC;A B Shetty Dental College; Mangalore;Private;NEET-UG;None;;NRI Quota;MDS - Oral Surgery;EWS;Round 3;555;2024;100;897000
 All India - MCC;Government Dental College; Mumbai;Government;AIIMS-MDS;Christian;;Deemed - Paid Seats (PS);MDS - Pedodontics;OBC;Round 1;6479;2024;852;799400
-All India - MCC;Maulana Azad Dental College; Delhi;Government;NEET-UG;Muslim;;Deemed - Paid Seats (PS);MDS - Pedodontics;Open;Round 2;5886;2024;396;951000
+All India - MCC;Maulana Azad Dental College; Delhi;Government;NEET-UG;Muslim;;Deemed - Paid Seats (PS);MDS - Pedodontics;Open;Round 3;5886;2024;396;951000
 All India - MCC;SRM Dental College; Chennai;Government;AIIMS-MDS;Christian;;Deemed - Paid Seats (PS);MDS - Periodontics;EWS;Round 1;10626;2024;753;100000
 All India - MCC;Government Dental College; Mumbai;Government;NEET-UG;Christian;;Management Quota;MDS - Periodontics;EWS;Round 2;12367;2024;741;750000
 All India - MCC;A B Shetty Dental College; Mangalore;Private;NEET-UG;Christian;;ST Quota;MDS - Oral Pathology;Open;Round 1;15386;2024;963;654000

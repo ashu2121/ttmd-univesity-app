@@ -9,16 +9,22 @@ from flask_cors import CORS
 #if not os.path.exists("university_index.faiss"):
 #    import prepare_data_faiss  # Will auto-run and generate both files
 
+with open(f"current_files.json", "r") as f:
+    file_config = json.load(f)
+json_file1 = file_config["json_file"]
+faiss_file1 = file_config["faiss_file"]
+print(json_file1)
 
 # Load metadata and FAISS index
-with open("university_chunks_openai_rag.json", "r", encoding="utf-8") as f:
+with open(json_file1, "r", encoding="utf-8") as f:
     metadata = json.load(f)
 
-index = faiss.read_index("university_index.faiss")
+index = faiss.read_index(faiss_file1)
 embedding_dim = 1536
 
 # OpenAI client setup
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+#client = OpenAI(api_key=os.environ.)
 
 # Flask app setup
 app = Flask(__name__)
