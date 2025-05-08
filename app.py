@@ -5,6 +5,7 @@ import numpy as np
 import json
 import os
 from flask_cors import CORS
+import datetime
 
 #if not os.path.exists("university_index.faiss"):
 #    import prepare_data_faiss  # Will auto-run and generate both files
@@ -24,6 +25,7 @@ embedding_dim = 1536
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+
 # OpenAI client setup
 #client = OpenAI(api_key=os.environ.)
 
@@ -31,6 +33,12 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 CORS(app)  # Enable for all origins
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Function to get embedding for a query
 def get_embedding(text, model="text-embedding-3-small"):
@@ -84,5 +92,53 @@ def ask():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+
+UPLOAD_FOLDER = "uploads"
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+TRACK_FILE = "upload_records.json"
+# Initialize tracking file if not exists
+if not os.path.exists(TRACK_FILE):
+    with open(TRACK_FILE, "w") as f:
+        f.write("[]")
+
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file part"}), 408
+
+        file = request.files['file']
+
+        if file.filename == '':
+            return jsonify({"error": "No selected file"}), 410
+        
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
+        filepath = os.path.join(UPLOAD_FOLDER, timestamp+".csv")
+        file.save(filepath)
+
+        record = {
+            "timestamp": timestamp,
+            "filename": file.filename,
+            "saved_as": filepath
+        }
+
+        # Append to the tracking file
+        with open(TRACK_FILE, "r+") as f:
+            records = json.load(f)
+            records.append(record)
+            f.seek(0)
+            json.dump(records, f, indent=2)
+
+        return jsonify({"status": "success", "filepath": filepath}), 200
+
+    except Exception as e:
+        print(str(e))
+        return jsonify({"error": str(e)}), 500
+
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=10000, debug=True)

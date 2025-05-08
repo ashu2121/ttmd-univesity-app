@@ -7,6 +7,7 @@ import os
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) # Set OpenAI key from environment
 
+
 # File paths
 import time
 timestamp = time.strftime("%Y%m%d%H%M%S")
@@ -17,11 +18,24 @@ faiss_file1 = f"university_index_{timestamp}.faiss"
 with open("current_files.json", "w") as f:
     json.dump({"json_file": json_file1, "faiss_file": faiss_file1}, f)
 
-csv_file = "Improved_NEET_MDS_Dataset.csv"
 
+TRACK_FILE = "upload_records.json"
 
-# Step 1: Read CSV
-df = pd.read_csv(csv_file, delimiter=';')
+if os.path.exists(TRACK_FILE):
+    with open(TRACK_FILE, "r") as f:
+        records = json.load(f)
+        if records:
+            last_file = records[-1]["saved_as"]
+        else:
+            raise FileNotFoundError("No uploaded files found.")
+else:
+    raise FileNotFoundError("Upload record file not found.")
+
+print(f"Processing file: {last_file}")
+
+# Step 1: Read CSV with correct delimiter
+df = pd.read_csv(last_file, delimiter=',')
+print("🧾 CSV Headers:", df.columns.tolist())
 
 # Filter usable rows
 df = df[df["college_name"].notnull() & df["course"].notnull() & df["cutoff"].notnull() & df["category"].notnull() & df["fee"].notnull()]
@@ -41,7 +55,7 @@ for _, row in df.iterrows():
     fee = row["fee"]
     round_ = row["round"]
     authority = row["counseling_authority"]
-    utype = row["college_type"]
+    utype = row["type"]
     #state = row["state"]
     minority = row["minority"] if pd.notna(row["minority"]) else "None"
 
