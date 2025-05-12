@@ -6,6 +6,8 @@ import json
 import os
 from flask_cors import CORS
 import datetime
+import threading
+import subprocess
 
 #if not os.path.exists("university_index.faiss"):
 #    import prepare_data_faiss  # Will auto-run and generate both files
@@ -23,7 +25,7 @@ with open(json_file1, "r", encoding="utf-8") as f:
 index = faiss.read_index(faiss_file1)
 embedding_dim = 1536
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("CLIENT_OPENAI_API_KEY"))
 
 
 # OpenAI client setup
@@ -105,9 +107,25 @@ if not os.path.exists(TRACK_FILE):
     with open(TRACK_FILE, "w") as f:
         f.write("[]")
 
+def run_faiss_processing():
+    try:
+        print("Starting FAISS processing...")
+        subprocess.Popen(["python", "prepare_data_faiss.py"])
+    except Exception as e:
+        print(f"Error running FAISS processing: {e}")
+
+
 @app.route("/upload", methods=["POST"])
 def upload_file():
     try:
+        with open(f"processing_status.json", "r") as f:
+            file_config = json.load(f)
+        previousFileProcessingStatus = file_config["status"]
+        if(previousFileProcessingStatus == "processing"):
+            return jsonify({"error": "previous file still in process"}), 510
+        
+
+
         if 'file' not in request.files:
             return jsonify({"error": "No file part"}), 408
 
@@ -133,8 +151,12 @@ def upload_file():
             f.seek(0)
             json.dump(records, f, indent=2)
 
-        return jsonify({"status": "success", "filepath": filepath}), 200
+        # initi
+        print(jsonify({"status": "success", "filepath": filepath})), 200
+        threading.Thread(target=run_faiss_processing).start()
 
+        return jsonify({"status": "success", "filepath": filepath}), 200
+        
     except Exception as e:
         print(str(e))
         return jsonify({"error": str(e)}), 500
