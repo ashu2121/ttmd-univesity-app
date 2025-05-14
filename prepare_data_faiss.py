@@ -10,13 +10,31 @@ import datetime
 # Set OpenAI key from environment
 client = OpenAI(api_key=os.getenv("CLIENT_OPENAI_API_KEY"))
 
-# File paths
+# CSV File paths
 TRACK_FILE = "upload_records.json"
 STATUS_FILE = "processing_status.json"
-timestamp = time.strftime("%Y%m%d%H%M%S")
-json_file = f"university_metadata_{timestamp}.json"
-faiss_file = f"university_index_{timestamp}.faiss"
 
+# JSON File paths
+QA_TRACK_FILE = "qa_upload_records.json"
+QA_STATUS_FILE = "qa_processing_status.json"
+
+# Timestamp for unique filenames
+timestamp = time.strftime("%Y%m%d%H%M%S")
+
+# Filenames for CSV data
+csv_json_file = f"csv_metadata_{timestamp}.json"
+csv_faiss_file = f"csv_index_{timestamp}.faiss"
+
+# Filenames for JSON data
+json_json_file = f"json_metadata_{timestamp}.json"
+json_faiss_file = f"json_index_{timestamp}.faiss"
+
+print("=================================================================================")
+print("CSV JSON file name >", csv_json_file)
+print("CSV FAISS file name >", csv_faiss_file)
+print("JSON JSON file name >", json_json_file)
+print("JSON FAISS file name >", json_faiss_file)
+print("=================================================================================")
 
 # Update the processing status file
 def update_status(status, error_message=""):
@@ -30,7 +48,25 @@ def update_status(status, error_message=""):
 
 update_status("processing")
 
-# Get the last saved file
+
+# Update the processing status file
+def update_qa_status(status, error_message=""):
+    status_record = {
+        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "status": status,
+        "error": error_message
+    }
+    with open(QA_STATUS_FILE, "w") as f:
+        json.dump(status_record, f, indent=2)
+
+
+update_qa_status("processing")
+
+
+# ==================== PROCESS CSV DATA ====================
+chunks_csv = []
+successful_chunks_csv = []
+
 try:
     if os.path.exists(TRACK_FILE):
         with open(TRACK_FILE, "r") as f:
@@ -38,82 +74,117 @@ try:
             if records:
                 last_file = records[-1]["saved_as"]
             else:
-                raise FileNotFoundError("No uploaded files found.")
-    else:
-        raise FileNotFoundError("Upload record file not found.")
+                raise FileNotFoundError("No uploaded CSV files found.")
 
-    print(f"Processing file: {last_file}")
+    print(f"Processing CSV file: {last_file}")
 
-except Exception as e:
-    update_status("failed", str(e))
-    print(f"Error initializing file processing: {e}")
-    exit()
-
-# Step 1: Read CSV with correct delimiter
-try:
+    # Read CSV
     df = pd.read_csv(last_file, delimiter=',')
-    print("🧾 CSV Headers:", df.columns.tolist())
-
-    # Filter usable rows
     df = df[df["college_name"].notnull() & df["course"].notnull() & df["cutoff"].notnull() & df["category"].notnull() & df["fee"].notnull()]
-    print(f"✅ Loaded {len(df)} valid rows.")
-
     df = df[df["exam"] == "NEET-MDS"].reset_index(drop=True)
 
-except Exception as e:
-    update_status("failed", f"CSV Reading Error: {e}")
-    print(f"Error reading CSV: {e}")
-    exit()
-
-# Step 2: Create JSON Chunks
-chunks = []
-try:
     for _, row in df.iterrows():
-        university = row["college_name"]
-        course = row["course"]
-        quota = row["quota"]
-        category = row["category"]
-        cutoff = row["cutoff"]
-        fee = row["fee"]
-        round_ = row["round"]
-        authority = row["counseling_authority"]
-        utype = row["type"]
-        minority = row["minority"] if pd.notna(row["minority"]) else "None"
-
-        chunk = (
-            f"{university} offers {course} under {quota} quota for {category} category in round {round_} "
-            f"with a cutoff rank of {cutoff}. Fee: ₹{fee}. College Type: {utype}. Counseling by {authority}. Minority: {minority}"
-        )
-        chunks.append(chunk)
-
-    # Save chunks to JSON
-    with open(json_file, "w", encoding="utf-8") as f:
-        json.dump(chunks, f, ensure_ascii=False, indent=2)
+        chunk = {
+            "text": f"{row['college_name']} offers {row['course']} under {row['quota']} quota for {row['category']} category with a cutoff rank of {row['cutoff']}. Fee: ₹{row['fee']}. Type: {row['type']}. Counseling by {row['counseling_authority']}. Minority: {row['minority']}",
+            "source": "CSV"
+        }
+        chunks_csv.append(chunk)
 
 except Exception as e:
-    update_status("failed", f"Data Processing Error: {e}")
-    print(f"Error creating JSON chunks: {e}")
-    exit()
+    update_status("failed", f"CSV Processing Error: {e}")
+    print(f"Error processing CSV: {e}")
 
-# Step 3: Embed chunks and save FAISS index
+# Embed CSV Data
 embedding_dim = 1536
-index = faiss.IndexFlatL2(embedding_dim)
+csv_index = faiss.IndexFlatL2(embedding_dim)
 
 try:
-    for chunk in chunks:
-        response = client.embeddings.create(input=[chunk], model="text-embedding-3-small")
-        embedding = response.data[0].embedding
-        index.add(np.array([embedding], dtype="float32"))
+    for chunk in chunks_csv:
+        if isinstance(chunk, dict) and "text" in chunk:
+            content = chunk["text"].strip()
+            response = client.embeddings.create(input=[content], model="text-embedding-3-small")
+            embedding = response.data[0].embedding
+            csv_index.add(np.array([embedding], dtype="float32"))
+            successful_chunks_csv.append(chunk)
 
-    faiss.write_index(index, faiss_file)
-    print("✅ JSON and FAISS files created.")
+    with open(csv_json_file, "w", encoding="utf-8") as f:
+        json.dump(successful_chunks_csv, f, ensure_ascii=False, indent=2)
+
+    faiss.write_index(csv_index, csv_faiss_file)
     update_status("success")
 
-    # Save filenames to a config file
+    print("=================================================================================")
+    print("CSV JSON file name >", csv_json_file)
+    print("CSV FAISS file name >", csv_faiss_file)
+    print("CSV data processed and saved successfully!")
+    print("=================================================================================")
+
+except Exception as e:
+    update_status("failed", f"CSV Embedding Error: {e}")
+    print(f"Error embedding CSV data: {e}")
+
+
+# ==================== PROCESS JSON DATA ====================
+chunks_json = []
+successful_chunks_json = []
+
+try:
+    if os.path.exists(QA_TRACK_FILE):
+        with open(QA_TRACK_FILE, "r") as f:
+            records = json.load(f)
+            if records:
+                qa_last_file = records[-1]["saved_as"]
+            else:
+                raise FileNotFoundError("No uploaded JSON files found.")
+
+    print(f"Processing JSON file: {qa_last_file}")
+
+    # Read JSON
+    if os.path.exists(qa_last_file):
+        with open(qa_last_file, "r", encoding="utf-8") as f:
+            new_entries = json.load(f)
+            for entry in new_entries:
+                if isinstance(entry, dict) and "question" in entry and "answer" in entry:
+                    question = entry["question"].strip()
+                    answer = entry["answer"].strip()
+                    chunks_json.append({
+                        "text": f"Question: {question} Answer: {answer}",
+                        "source": "JSON"
+                    })
+
+except Exception as e:
+    update_qa_status("failed", f"JSON Processing Error: {e}")
+    print(f"Error processing JSON: {e}")
+
+# Embed JSON Data
+json_index = faiss.IndexFlatL2(embedding_dim)
+
+try:
+    for chunk in chunks_json:
+        if isinstance(chunk, dict) and "text" in chunk:
+            content = chunk["text"].strip()
+            response = client.embeddings.create(input=[content], model="text-embedding-3-small")
+            embedding = response.data[0].embedding
+            json_index.add(np.array([embedding], dtype="float32"))
+            successful_chunks_json.append(chunk)
+
+    with open(json_json_file, "w", encoding="utf-8") as f:
+        json.dump(successful_chunks_json, f, ensure_ascii=False, indent=2)
+
+    faiss.write_index(json_index, json_faiss_file)
+    update_qa_status("success")
+ 
+    print("=================================================================================")
+    print("JSON JSON file name >", json_json_file)
+    print("JSON FAISS file name >", json_faiss_file)
+    print("JSON data processed and saved successfully!")
+    print("=================================================================================")
+
     with open("current_files.json", "w") as f:
-        json.dump({"json_file": json_file, "faiss_file": faiss_file}, f)
+        json.dump({"json_json_file": json_json_file, "json_faiss_file": json_faiss_file,
+                    "csv_json_file": csv_json_file, "csv_faiss_file": csv_faiss_file}, f)
 
 
 except Exception as e:
-    update_status("failed", f"Embedding/FAISS Error: {e}")
-    print(f"Error during FAISS processing: {e}")
+    update_qa_status("failed", f"JSON Embedding Error: {e}")
+    print(f"Error embedding JSON data: {e}")
