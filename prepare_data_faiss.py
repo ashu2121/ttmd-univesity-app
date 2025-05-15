@@ -6,6 +6,7 @@ from openai import OpenAI
 import os
 import time
 import datetime
+import re
 
 # Set OpenAI key from environment
 client = OpenAI(api_key=os.getenv("CLIENT_OPENAI_API_KEY"))
@@ -84,9 +85,28 @@ try:
     df = df[df["exam"] == "NEET-MDS"].reset_index(drop=True)
 
     for _, row in df.iterrows():
+        # More robustly parse cutoff_rank to a numeric value
+        raw_cutoff_str = str(row['cutoff']).strip()
+        # Remove commas that might be used as thousands separators
+        cleaned_str_for_num_extraction = raw_cutoff_str.replace(',', '')
+        
+        # Search for the first sequence of digits (can include a decimal, though ranks are usually integers)
+        # This will find numbers like "9868", "12000.0", even if embedded like "Approx 9868"
+        match = re.search(r'\d+(\.\d+)?', cleaned_str_for_num_extraction)
+        
+        if match:
+            try:
+                cutoff_val = float(match.group(0))
+            except ValueError: # Should be rare if regex matches a number-like string
+                cutoff_val = 0
+        else:
+            cutoff_val = 0 # No numeric part found
+
+        # The text will still display the original cutoff string from the CSV
         chunk = {
             "text": f"{row['college_name']} offers {row['course']} under {row['quota']} quota for {row['category']} category with a cutoff rank of {row['cutoff']}. Fee: ₹{row['fee']}. Type: {row['type']}. Counseling by {row['counseling_authority']}. Minority: {row['minority']}",
-            "source": "CSV"
+            "source": "CSV",
+            "cutoff_rank": cutoff_val  # Store numeric cutoff rank
         }
         chunks_csv.append(chunk)
 
@@ -94,25 +114,64 @@ except Exception as e:
     update_status("failed", f"CSV Processing Error: {e}")
     print(f"Error processing CSV: {e}")
 
+
+
+def generate_query_vector(query, rank=None):
+    # Embed the query
+    response = client.embeddings.create(input=[query], model="text-embedding-3-small")
+    embedding = np.array(response.data[0].embedding, dtype="float32")
+
+    # Assign rank or neutral value (float("inf")) for general queries
+    rank_value = rank if rank is not None else float("inf")
+    query_vector = np.append(embedding, rank_value).reshape(1, -1)
+    
+    return query_vector
+
 # Embed CSV Data
 embedding_dim = 1536
+new_dim = embedding_dim + 1  # Additional dimension for cutoff rank
+
 csv_index = faiss.IndexFlatL2(embedding_dim)
 
 try:
+    embedding_dim = 1536  # Original embedding dimension
+    csv_index = faiss.IndexFlatL2(embedding_dim)
+    successful_chunks_csv = []
+
     for chunk in chunks_csv:
         if isinstance(chunk, dict) and "text" in chunk:
             content = chunk["text"].strip()
-            response = client.embeddings.create(input=[content], model="text-embedding-3-small")
-            embedding = response.data[0].embedding
-            csv_index.add(np.array([embedding], dtype="float32"))
-            successful_chunks_csv.append(chunk)
 
+            # Embed the text
+            try:
+                response = client.embeddings.create(input=[content], model="text-embedding-3-small")
+                embedding = np.array(response.data[0].embedding, dtype="float32")
+
+                # Check for NaN or Infinity values
+                if np.any(np.isnan(embedding)) or np.any(np.isinf(embedding)):
+                    print(f"Warning: Invalid embedding detected for text: {content}")
+                    continue  # Skip this entry
+
+                # Add to FAISS index
+                csv_index.add(np.array([embedding], dtype="float32"))
+
+                # Add embedding to chunk data
+                chunk["embedding"] = embedding.tolist()
+                successful_chunks_csv.append(chunk)
+
+            except Exception as e:
+                print(f"Error generating embedding for text: {content} | Error: {e}")
+                continue
+
+    # Save CSV metadata with embeddings
     with open(csv_json_file, "w", encoding="utf-8") as f:
         json.dump(successful_chunks_csv, f, ensure_ascii=False, indent=2)
 
+    # Save the FAISS index
     faiss.write_index(csv_index, csv_faiss_file)
     update_status("success")
 
+    print(f"FAISS index (dimension: {csv_index.d}) and CSV JSON saved successfully.")
     print("=================================================================================")
     print("CSV JSON file name >", csv_json_file)
     print("CSV FAISS file name >", csv_faiss_file)
@@ -157,6 +216,7 @@ except Exception as e:
     print(f"Error processing JSON: {e}")
 
 # Embed JSON Data
+# Embed JSON Data
 json_index = faiss.IndexFlatL2(embedding_dim)
 
 try:
@@ -165,12 +225,19 @@ try:
             content = chunk["text"].strip()
             response = client.embeddings.create(input=[content], model="text-embedding-3-small")
             embedding = response.data[0].embedding
+
+            # Add to FAISS index
             json_index.add(np.array([embedding], dtype="float32"))
+            
+            # Include the embedding in the chunk data
+            chunk["embedding"] = embedding # embedding is already a list here
             successful_chunks_json.append(chunk)
 
+    # Save JSON metadata with embeddings
     with open(json_json_file, "w", encoding="utf-8") as f:
         json.dump(successful_chunks_json, f, ensure_ascii=False, indent=2)
 
+    # Save the FAISS index
     faiss.write_index(json_index, json_faiss_file)
     update_qa_status("success")
  
